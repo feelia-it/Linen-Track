@@ -560,16 +560,19 @@ async def exchange_session(request: Request, response: Response):
         if session:
             user = await db.users.find_one({"user_id": session["user_id"]}, {"_id": 0})
             if user:
+                trusted_session_token = session.get("session_token")
+                if not trusted_session_token:
+                    raise HTTPException(status_code=401, detail="Invalid session")
                 response.set_cookie(
                     key="session_token",
-                    value=session_id,
+                    value=trusted_session_token,
                     httponly=True,
                     secure=True,
                     samesite="none",
                     path="/",
                     max_age=7*24*60*60
                 )
-                user["session_token"] = session_id
+                user["session_token"] = trusted_session_token
                 return user
         
         dev_email = f"user_{session_id[:8]}@example.com"
